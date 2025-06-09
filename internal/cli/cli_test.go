@@ -5,6 +5,7 @@ import (
 
 	"github.com/aereal/github-ops/internal/assertions"
 	"github.com/aereal/github-ops/internal/cli"
+	"github.com/aereal/github-ops/internal/domain"
 	"go.uber.org/mock/gomock"
 )
 
@@ -59,12 +60,12 @@ func TestApp_Run(t *testing.T) {
 		{
 			name:    "no secret name",
 			args:    []string{"app"},
-			wantErr: cli.ErrSecretNameRequired,
+			wantErr: domain.ErrEmptySecretName,
 		},
 		{
 			name:    "no secret value",
 			args:    []string{"app", "-secret-name", "MY_SECRET"},
-			wantErr: cli.ErrSecretValueRequired,
+			wantErr: domain.ErrEmptySecretValue,
 		},
 	}
 	for _, tc := range testCases {

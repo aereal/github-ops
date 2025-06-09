@@ -8,8 +8,8 @@ import (
 	"flag"
 	"fmt"
 	"path/filepath"
-	"strings"
 
+	"github.com/aereal/github-ops/internal/domain"
 	set "github.com/hashicorp/go-set/v3"
 	"golang.org/x/sync/errgroup"
 )
@@ -31,14 +31,14 @@ func (a *App) Run(ctx context.Context, args []string) error {
 	var (
 		secretName  string
 		secretValue string
-		repos       = set.New[qualifiedRepo](0)
+		repos       = set.New[string](0)
 	)
 	fs.Func("repos", "repository name list", func(s string) error {
-		qr := new(qualifiedRepo)
-		if err := qr.Set(s); err != nil {
+		_, err := domain.ParseQualifiedRepository(s)
+		if err != nil {
 			return err
 		}
-		_ = repos.Insert(*qr)
+		_ = repos.Insert(s)
 		return nil
 	})
 	fs.StringVar(&secretName, "secret-name", "", "secret name")
@@ -50,39 +50,22 @@ func (a *App) Run(ctx context.Context, args []string) error {
 	case err != nil:
 		return err
 	}
-	if secretName == "" {
-		return ErrSecretNameRequired
-	}
-	if secretValue == "" {
-		return ErrSecretValueRequired
+	secret, err := domain.NewSecret(secretName, secretValue)
+	if err != nil {
+		return err
 	}
 	eg, ctx := errgroup.WithContext(ctx)
-	for r := range repos.Items() {
-		owner := r.Owner
-		repoName := r.Repo
+	for repoStr := range repos.Items() {
+		repo, err := domain.ParseQualifiedRepository(repoStr)
+		if err != nil {
+			return err
+		}
 		eg.Go(func() error {
-			return a.uc.DoRegisterRepositorySecret(ctx, owner, repoName, secretName, secretValue)
+			return a.uc.DoRegisterRepositorySecret(ctx, repo.Owner(), repo.Name(), secret.Name(), secret.Value())
 		})
 	}
 	if err := eg.Wait(); err != nil {
 		return fmt.Errorf("usecases.NewRegisterRepositorySecret.Do: %w", err)
 	}
-	return nil
-}
-
-type qualifiedRepo struct {
-	Owner, Repo string
-}
-
-var _ flag.Value = (*qualifiedRepo)(nil)
-
-func (r *qualifiedRepo) String() string { return r.Owner + "/" + r.Repo }
-
-func (r *qualifiedRepo) Set(v string) error {
-	owner, repo, ok := strings.Cut(v, "/")
-	if !ok {
-		return &MalformedQualifiedRepoError{v}
-	}
-	*r = qualifiedRepo{Owner: owner, Repo: repo}
 	return nil
 }
