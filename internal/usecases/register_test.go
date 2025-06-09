@@ -10,7 +10,7 @@ import (
 
 	"github.com/aereal/github-ops/internal/assertions"
 	"github.com/aereal/github-ops/internal/usecases"
-	"github.com/google/go-github/v69/github"
+	"github.com/google/go-github/v72/github"
 	"go.uber.org/mock/gomock"
 	"golang.org/x/crypto/nacl/box"
 )
