@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/aereal/github-ops/internal/cli"
+	"github.com/aereal/github-ops/internal/cli/registersecret"
 	"github.com/aereal/github-ops/internal/infrastructure/encryption"
 	"github.com/aereal/github-ops/internal/infrastructure/github"
 	"github.com/aereal/github-ops/internal/log"
@@ -22,7 +22,7 @@ func run() int {
 	repoService := github.NewRepositoryService(ghClient.Actions)
 	encryptionService := encryption.NewNaClService()
 	uc := usecases.NewRegisterRepositorySecret(repoService, encryptionService)
-	if err := cli.NewApp(uc).Run(ctx, os.Args); err != nil {
+	if err := registersecret.NewApp(uc).Run(ctx, os.Args); err != nil {
 		slog.ErrorContext(ctx, "Run failed", log.AttrError(err))
 		return 1
 	}

@@ -1,10 +1,10 @@
-package cli_test
+package registersecret_test
 
 import (
 	"testing"
 
 	"github.com/aereal/github-ops/internal/assertions"
-	"github.com/aereal/github-ops/internal/cli"
+	"github.com/aereal/github-ops/internal/cli/registersecret"
 	"go.uber.org/mock/gomock"
 )
 
@@ -73,7 +73,7 @@ func TestApp_Run(t *testing.T) {
 			if tc.doMock != nil {
 				tc.doMock(mockUsecase)
 			}
-			app := cli.NewApp(mockUsecase)
+			app := registersecret.NewApp(mockUsecase)
 			ctx := t.Context()
 			gotErr := app.Run(ctx, tc.args)
 			if diff := assertions.DiffErrorsConservatively(tc.wantErr, gotErr); diff != "" {
