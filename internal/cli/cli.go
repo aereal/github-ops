@@ -1,4 +1,4 @@
-//go:generate go tool mockgen -destination ./usecase_mock_test.go -package cli_test -typed -write_command_comment=false github.com/aereal/github-ops/internal/cli RegisterRepositorySecretUsecase
+//go:generate go tool mockgen -destination ./usecase_mock_test.go -package cli_test -typed -write_command_comment=false github.com/aereal/github-ops/internal/domain SecretRegistrationService
 
 package cli
 
@@ -14,16 +14,14 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type RegisterRepositorySecretUsecase interface {
-	DoRegisterRepositorySecret(ctx context.Context, repoOwner string, repoName string, secretName string, plainMsg string) error
-}
+type SecretRegistrationUsecase = domain.SecretRegistrationService
 
-func NewApp(uc RegisterRepositorySecretUsecase) *App {
+func NewApp(uc SecretRegistrationUsecase) *App {
 	return &App{uc: uc}
 }
 
 type App struct {
-	uc RegisterRepositorySecretUsecase
+	uc SecretRegistrationUsecase
 }
 
 func (a *App) Run(ctx context.Context, args []string) error {
@@ -61,7 +59,8 @@ func (a *App) Run(ctx context.Context, args []string) error {
 			return err
 		}
 		eg.Go(func() error {
-			return a.uc.DoRegisterRepositorySecret(ctx, repo.Owner(), repo.Name(), secret.Name(), secret.Value())
+			request := domain.NewSecretRegistrationRequest(*repo, *secret)
+			return a.uc.RegisterSecret(ctx, request)
 		})
 	}
 	if err := eg.Wait(); err != nil {

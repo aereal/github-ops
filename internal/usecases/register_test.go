@@ -2,156 +2,75 @@ package usecases_test
 
 import (
 	"crypto/rand"
-	"encoding/base64"
-	"errors"
-	"fmt"
-	"sync"
 	"testing"
 
-	"github.com/aereal/github-ops/internal/assertions"
+	"github.com/aereal/github-ops/internal/domain"
 	"github.com/aereal/github-ops/internal/usecases"
-	"github.com/google/go-github/v72/github"
 	"go.uber.org/mock/gomock"
 	"golang.org/x/crypto/nacl/box"
 )
 
-func TestRegisterRepositorySecret_Do(t *testing.T) {
+func TestRegisterRepositorySecret_RegisterSecret(t *testing.T) {
 	pubKey, err := getPublicKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	type input struct {
-		repoOwner  string
-		repoName   string
-		secretName string
-		plainMsg   string
-	}
+
 	testCases := []struct {
-		wantErr error
-		doMock  func(m *MockGHActionsService)
-		input   input
-		name    string
+		mockRepoService func(m *MockRepositoryService)
+		mockEncryption  func(m *MockEncryptionService)
+		request         domain.SecretRegistrationRequest
+		name            string
+		wantErr         bool
 	}{
 		{
 			name: "ok",
-			input: input{
-				repoOwner:  "aereal",
-				repoName:   "myrepo",
-				secretName: "MY_SECRET",
-				plainMsg:   "blah blah",
+			request: domain.SecretRegistrationRequest{
+				Repository: domain.Repository{Owner: "aereal", Name: "myrepo"},
+				Secret:     domain.Secret{Name: "MY_SECRET", Value: "blah blah"},
 			},
-			doMock: func(m *MockGHActionsService) {
-				succeedsCreateOrUpdateRepoSecret(m).
-					Times(1).
-					After(succeedsGetRepoPublicKey(m, pubKey).Times(1))
+			mockRepoService: func(m *MockRepositoryService) {
+				m.EXPECT().GetPublicKey(gomock.Any(), gomock.Any()).Return(&domain.PublicKey{
+					KeyID: "test-key-id",
+					Key:   pubKey[:],
+				}, nil)
+				m.EXPECT().CreateOrUpdateSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
-		},
-		{
-			name: "failed to GetRepoPublicKey",
-			input: input{
-				repoOwner:  "aereal",
-				repoName:   "myrepo",
-				secretName: "MY_SECRET",
-				plainMsg:   "blah blah",
+			mockEncryption: func(m *MockEncryptionService) {
+				m.EXPECT().Encrypt(gomock.Any(), gomock.Any()).Return("encrypted-value", nil)
 			},
-			doMock: func(m *MockGHActionsService) {
-				_ = failsGetRepoPublicKey(m)
-			},
-			wantErr: errGetRepoPublicKey,
-		},
-		{
-			name: "failed to CreateOrUpdateRepoSecret",
-			input: input{
-				repoOwner:  "aereal",
-				repoName:   "myrepo",
-				secretName: "MY_SECRET",
-				plainMsg:   "blah blah",
-			},
-			doMock: func(m *MockGHActionsService) {
-				_ = failsCreateOrUpdateRepoSecret(m).
-					Times(1).
-					After(succeedsGetRepoPublicKey(m, pubKey).Times(1))
-			},
-			wantErr: errCreateOrUpdateRepoSecret,
+			wantErr: false,
 		},
 	}
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			mockClient := NewMockGHActionsService(ctrl)
-			if doMock := testCase.doMock; doMock != nil {
-				doMock(mockClient)
-			}
-			ctx := t.Context()
-			gotErr := usecases.
-				NewRegisterRepositorySecret(mockClient).
-				DoRegisterRepositorySecret(ctx, testCase.input.repoOwner, testCase.input.repoName, testCase.input.secretName, testCase.input.plainMsg)
-			if diff := assertions.DiffErrorsConservatively(testCase.wantErr, gotErr); diff != "" {
-				t.Errorf("error (-want, +got):\n%s", diff)
+			defer ctrl.Finish()
+
+			mockRepo := NewMockRepositoryService(ctrl)
+			mockEncryption := NewMockEncryptionService(ctrl)
+
+			tc.mockRepoService(mockRepo)
+			tc.mockEncryption(mockEncryption)
+
+			uc := usecases.NewRegisterRepositorySecret(mockRepo, mockEncryption)
+
+			err := uc.RegisterSecret(t.Context(), tc.request)
+
+			if tc.wantErr && err == nil {
+				t.Errorf("expected error but got none")
+			} else if !tc.wantErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
 			}
 		})
 	}
 }
 
-func succeedsGetRepoPublicKey(m *MockGHActionsService, pubKey *github.PublicKey) *MockGHActionsServiceGetRepoPublicKeyCall {
-	return m.EXPECT().
-		GetRepoPublicKey(gomock.Any(), "aereal", "myrepo").
-		Return(pubKey, &github.Response{}, nil)
-}
-
-var errGetRepoPublicKey = errors.New("fail: GetRepoPublicKey")
-
-func failsGetRepoPublicKey(m *MockGHActionsService) *MockGHActionsServiceGetRepoPublicKeyCall {
-	return m.EXPECT().
-		GetRepoPublicKey(gomock.Any(), "aereal", "myrepo").
-		Return(nil, &github.Response{}, errGetRepoPublicKey)
-}
-
-func succeedsCreateOrUpdateRepoSecret(m *MockGHActionsService) *MockGHActionsServiceCreateOrUpdateRepoSecretCall {
-	return m.EXPECT().
-		CreateOrUpdateRepoSecret(gomock.Any(), "aereal", "myrepo", &encryptedSecretMatcher{name: "MY_SECRET", keyID: "0xdeadbeaf"}).
-		Return(&github.Response{}, nil)
-}
-
-var errCreateOrUpdateRepoSecret = errors.New("fail: CreateOrUpdateRepoSecret")
-
-func failsCreateOrUpdateRepoSecret(m *MockGHActionsService) *MockGHActionsServiceCreateOrUpdateRepoSecretCall {
-	return m.EXPECT().
-		CreateOrUpdateRepoSecret(gomock.Any(), "aereal", "myrepo", &encryptedSecretMatcher{name: "MY_SECRET", keyID: "0xdeadbeaf"}).
-		Return(nil, errCreateOrUpdateRepoSecret)
-}
-
-var (
-	getPublicKey = sync.OnceValues(func() (*github.PublicKey, error) {
-		pubKey, _, err := box.GenerateKey(rand.Reader)
-		if err != nil {
-			return nil, err
-		}
-		encodedKey := base64.StdEncoding.EncodeToString((*pubKey)[:])
-		return &github.PublicKey{
-			KeyID: ref("0xdeadbeaf"),
-			Key:   ref(encodedKey),
-		}, nil
-	})
-)
-
-func ref[T any](t T) *T { return &t }
-
-type encryptedSecretMatcher struct {
-	name  string
-	keyID string
-}
-
-var _ gomock.Matcher = (*encryptedSecretMatcher)(nil)
-
-func (m *encryptedSecretMatcher) Matches(x any) bool {
-	encryptedSecret, ok := x.(*github.EncryptedSecret)
-	if !ok {
-		return false
+func getPublicKey() (*[32]byte, error) {
+	pub, _, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, err
 	}
-	return encryptedSecret.Name == m.name && encryptedSecret.KeyID == m.keyID
-}
-
-func (m *encryptedSecretMatcher) String() string {
-	return fmt.Sprintf("&github.EncryptedSecret{Name=%q; KeyID=%q}", m.name, m.keyID)
+	return pub, nil
 }

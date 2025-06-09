@@ -1,54 +1,40 @@
 package domain
 
 import (
+	"context"
+	"fmt"
 	"strings"
 )
 
+// Repository represents a GitHub repository
 type Repository struct {
-	owner string
-	name  string
+	Owner string
+	Name  string
 }
 
-func NewRepository(owner, name string) (*Repository, error) {
-	if owner == "" {
-		return nil, ErrEmptyRepositoryOwner
+// ParseQualifiedRepository parses a string in the format "owner/repo"
+func ParseQualifiedRepository(s string) (*Repository, error) {
+	parts := strings.SplitN(s, "/", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid repository format: expected 'owner/repo', got '%s'", s)
 	}
-	if name == "" {
-		return nil, ErrEmptyRepositoryName
+	if parts[0] == "" || parts[1] == "" {
+		return nil, fmt.Errorf("invalid repository format: owner and repo name cannot be empty")
 	}
 	return &Repository{
-		owner: owner,
-		name:  name,
+		Owner: parts[0],
+		Name:  parts[1],
 	}, nil
 }
 
-func ParseQualifiedRepository(qualified string) (*Repository, error) {
-	owner, name, ok := strings.Cut(qualified, "/")
-	if !ok {
-		return nil, &MalformedQualifiedRepositoryError{Input: qualified}
-	}
-	return NewRepository(owner, name)
+// PublicKey represents a public key for encryption
+type PublicKey struct {
+	KeyID string
+	Key   []byte
 }
 
-func (r *Repository) Owner() string {
-	return r.owner
-}
-
-func (r *Repository) Name() string {
-	return r.name
-}
-
-func (r *Repository) QualifiedName() string {
-	return r.owner + "/" + r.name
-}
-
-func (r *Repository) String() string {
-	return r.QualifiedName()
-}
-
-func (r *Repository) Equal(other *Repository) bool {
-	if other == nil {
-		return false
-	}
-	return r.owner == other.owner && r.name == other.name
+// RepositoryService defines operations for GitHub repositories
+type RepositoryService interface {
+	GetPublicKey(ctx context.Context, repo Repository) (*PublicKey, error)
+	CreateOrUpdateSecret(ctx context.Context, repo Repository, secret EncryptedSecret) error
 }

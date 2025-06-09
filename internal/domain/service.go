@@ -1,35 +1,22 @@
 package domain
 
-import (
-	"context"
-)
+import "context"
 
+// SecretRegistrationRequest represents a request to register a secret
 type SecretRegistrationRequest struct {
-	secret       *Secret
-	repositories []*Repository
+	Repository Repository
+	Secret     Secret
 }
 
-func NewSecretRegistrationRequest(repositories []*Repository, secret *Secret) (*SecretRegistrationRequest, error) {
-	if len(repositories) == 0 {
-		return nil, ErrNoRepositoriesSpecified
-	}
-	if secret == nil {
-		return nil, ErrSecretRequired
-	}
-	return &SecretRegistrationRequest{
-		repositories: repositories,
-		secret:       secret,
-	}, nil
-}
-
-func (r *SecretRegistrationRequest) Repositories() []*Repository {
-	return r.repositories
-}
-
-func (r *SecretRegistrationRequest) Secret() *Secret {
-	return r.secret
-}
-
+// SecretRegistrationService defines the business logic for secret registration
 type SecretRegistrationService interface {
-	RegisterSecret(ctx context.Context, request *SecretRegistrationRequest) error
+	RegisterSecret(ctx context.Context, request SecretRegistrationRequest) error
+}
+
+// NewSecretRegistrationRequest creates a new secret registration request
+func NewSecretRegistrationRequest(repo Repository, secret Secret) SecretRegistrationRequest {
+	return SecretRegistrationRequest{
+		Repository: repo,
+		Secret:     secret,
+	}
 }
