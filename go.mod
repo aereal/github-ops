@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-github/v69 v69.2.0
+	github.com/google/go-github/v72 v72.0.0
 	github.com/hashicorp/go-set/v3 v3.0.0
 	go.uber.org/mock v0.5.0
 	golang.org/x/crypto v0.35.0

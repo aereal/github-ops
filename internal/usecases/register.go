@@ -11,7 +11,7 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/google/go-github/v69/github"
+	"github.com/google/go-github/v72/github"
 	"golang.org/x/crypto/nacl/box"
 )
 

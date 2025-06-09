@@ -8,7 +8,7 @@ import (
 	"github.com/aereal/github-ops/internal/cli"
 	"github.com/aereal/github-ops/internal/log"
 	"github.com/aereal/github-ops/internal/usecases"
-	"github.com/google/go-github/v69/github"
+	"github.com/google/go-github/v72/github"
 )
 
 func main() { os.Exit(run()) }
