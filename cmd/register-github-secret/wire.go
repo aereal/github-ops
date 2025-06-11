@@ -29,8 +29,8 @@ var AppSet = wire.NewSet(
 	registersecret.ProvideApp,
 )
 
-// InitializeApp initializes the application with all dependencies
-func InitializeApp() *registersecret.App {
+// initializeApp initializes the application with all dependencies
+func initializeApp() *registersecret.App {
 	wire.Build(
 		InfrastructureSet,
 		UseCaseSet,

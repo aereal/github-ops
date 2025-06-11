@@ -16,8 +16,8 @@ import (
 
 // Injectors from wire.go:
 
-// InitializeApp initializes the application with all dependencies
-func InitializeApp() *registersecret.App {
+// initializeApp initializes the application with all dependencies
+func initializeApp() *registersecret.App {
 	client := github.ProvideGitHubClient()
 	repositoryService := github.ProvideRepositoryService(client)
 	encryptionService := encryption.ProvideEncryptionService()
