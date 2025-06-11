@@ -1,79 +1,57 @@
-//go:generate go tool mockgen -destination ./mock_test.go -package usecases_test -typed -write_command_comment=false github.com/aereal/github-ops/internal/usecases GHActionsService
+//go:generate go tool mockgen -destination ./mock_test.go -package usecases_test -typed -write_command_comment=false github.com/aereal/github-ops/internal/domain RepositoryService,EncryptionService
 
 package usecases
 
 import (
-	"bytes"
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
-	"io"
 	"log/slog"
 
-	"github.com/google/go-github/v72/github"
-	"golang.org/x/crypto/nacl/box"
+	"github.com/aereal/github-ops/internal/domain"
 )
 
-type GHActionsService interface {
-	GetRepoPublicKey(ctx context.Context, owner, repo string) (*github.PublicKey, *github.Response, error)
-	CreateOrUpdateRepoSecret(ctx context.Context, owner, repo string, eSecret *github.EncryptedSecret) (*github.Response, error)
-}
-
-func NewRegisterRepositorySecret(client GHActionsService) *RegisterRepositorySecret {
-	return &RegisterRepositorySecret{client: client}
+func NewRegisterRepositorySecret(repoService domain.RepositoryService, encryptionService domain.EncryptionService) *RegisterRepositorySecret {
+	return &RegisterRepositorySecret{
+		repoService:       repoService,
+		encryptionService: encryptionService,
+	}
 }
 
 type RegisterRepositorySecret struct {
-	client GHActionsService
+	repoService       domain.RepositoryService
+	encryptionService domain.EncryptionService
 }
 
-func (u *RegisterRepositorySecret) DoRegisterRepositorySecret(ctx context.Context, repoOwner string, repoName string, secretName string, plainMsg string) error {
-	pubKey, _, err := u.client.GetRepoPublicKey(ctx, repoOwner, repoName)
+func (u *RegisterRepositorySecret) RegisterSecret(ctx context.Context, request domain.SecretRegistrationRequest) error {
+	// Get public key for the repository
+	pubKey, err := u.repoService.GetPublicKey(ctx, request.Repository)
 	if err != nil {
-		return fmt.Errorf("GetRepoPublicKey: %w", err)
+		return fmt.Errorf("failed to get public key: %w", err)
 	}
-	serverPubKey, err := getRawPublicKey(pubKey)
+
+	// Encrypt the secret value
+	encryptedValue, err := u.encryptionService.Encrypt([]byte(request.Secret.Value), pubKey)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to encrypt secret: %w", err)
 	}
-	encrypted, err := encryptAndEncode([]byte(plainMsg), serverPubKey)
-	if err != nil {
-		return err
+
+	// Create encrypted secret
+	encryptedSecret := domain.EncryptedSecret{
+		Name:           request.Secret.Name,
+		KeyID:          pubKey.KeyID,
+		EncryptedValue: encryptedValue,
 	}
-	secret := &github.EncryptedSecret{
-		Name:           secretName,
-		KeyID:          pubKey.GetKeyID(),
-		EncryptedValue: encrypted,
-	}
+
 	slog.InfoContext(ctx, "set repository secret",
-		slog.String("repo.owner", repoOwner),
-		slog.String("repo.name", repoName),
-		slog.String("secret.name", secretName),
+		slog.String("repo.owner", request.Repository.Owner),
+		slog.String("repo.name", request.Repository.Name),
+		slog.String("secret.name", request.Secret.Name),
 	)
-	if _, err := u.client.CreateOrUpdateRepoSecret(ctx, repoOwner, repoName, secret); err != nil {
-		return fmt.Errorf("CreateOrUpdateRepoSecret: %w", err)
+
+	// Store the encrypted secret
+	if err := u.repoService.CreateOrUpdateSecret(ctx, request.Repository, encryptedSecret); err != nil {
+		return fmt.Errorf("failed to create or update secret: %w", err)
 	}
+
 	return nil
-}
-
-func encryptAndEncode(msg []byte, pubKey *[32]byte) (string, error) {
-	var out []byte
-	got, err := box.SealAnonymous(out, msg, pubKey, rand.Reader)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(got), nil
-}
-
-func getRawPublicKey(pubKey *github.PublicKey) (*[32]byte, error) {
-	rawPubKey, err := base64.StdEncoding.DecodeString(pubKey.GetKey())
-	if err != nil {
-		return nil, fmt.Errorf("base64.Encoding.DecodeString: %w", err)
-	}
-	serverPubKey := new([32]byte)
-	if _, err := io.ReadFull(bytes.NewReader(rawPubKey), serverPubKey[:]); err != nil {
-		return nil, fmt.Errorf("io.ReadFull: %w", err)
-	}
-	return serverPubKey, nil
 }
