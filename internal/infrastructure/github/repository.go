@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
 
 	"github.com/aereal/github-ops/internal/domain"
 	"github.com/google/go-github/v72/github"
@@ -58,3 +59,15 @@ func (s *RepositoryService) CreateOrUpdateSecret(ctx context.Context, repo domai
 
 	return nil
 }
+
+// ProvideGitHubClient provides a GitHub client with authentication
+func ProvideGitHubClient() *github.Client {
+	return github.NewClient(nil).WithAuthToken(os.Getenv("GITHUB_TOKEN"))
+}
+
+// ProvideRepositoryService provides a RepositoryService instance
+func ProvideRepositoryService(client *github.Client) domain.RepositoryService {
+	return NewRepositoryService(client.Actions)
+}
+
+var _ domain.RepositoryService = (*RepositoryService)(nil)

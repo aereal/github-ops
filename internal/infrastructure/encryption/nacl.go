@@ -41,3 +41,10 @@ func (s *NaClService) Encrypt(plaintext []byte, publicKey *domain.PublicKey) (st
 	// Encode to base64
 	return base64.StdEncoding.EncodeToString(encrypted), nil
 }
+
+// ProvideEncryptionService provides an EncryptionService instance
+func ProvideEncryptionService() domain.EncryptionService {
+	return NewNaClService()
+}
+
+var _ domain.EncryptionService = (*NaClService)(nil)
