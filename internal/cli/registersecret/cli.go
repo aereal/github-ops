@@ -68,3 +68,8 @@ func (a *App) Run(ctx context.Context, args []string) error {
 	}
 	return nil
 }
+
+// ProvideApp provides an App instance
+func ProvideApp(uc SecretRegistrationUsecase) *App {
+	return NewApp(uc)
+}

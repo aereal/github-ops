@@ -55,3 +55,10 @@ func (u *RegisterRepositorySecret) RegisterSecret(ctx context.Context, request d
 
 	return nil
 }
+
+// ProvideRegisterRepositorySecret provides a RegisterRepositorySecret instance
+func ProvideRegisterRepositorySecret(repoService domain.RepositoryService, encryptionService domain.EncryptionService) domain.SecretRegistrationService {
+	return NewRegisterRepositorySecret(repoService, encryptionService)
+}
+
+var _ domain.SecretRegistrationService = (*RegisterRepositorySecret)(nil)
