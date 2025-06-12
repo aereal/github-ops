@@ -13,6 +13,11 @@ type SecretRegistrationService interface {
 	RegisterSecret(ctx context.Context, request SecretRegistrationRequest) error
 }
 
+// SecretScanningAlertService defines the business logic for secret scanning alerts
+type SecretScanningAlertService interface {
+	ListOpenSecretScanningAlertsForOrg(ctx context.Context, org string, secretTypes []string) SecretScanningAlertIterator
+}
+
 // NewSecretRegistrationRequest creates a new secret registration request
 func NewSecretRegistrationRequest(repo Repository, secret Secret) SecretRegistrationRequest {
 	return SecretRegistrationRequest{
