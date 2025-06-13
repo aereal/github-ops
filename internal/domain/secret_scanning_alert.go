@@ -5,7 +5,13 @@ import (
 	"iter"
 )
 
+type SecretScanningAlertTargetRepository struct {
+	Owner string
+	Name  string
+}
+
 type SecretScanningAlert struct {
+	Repository *SecretScanningAlertTargetRepository
 	SecretType string
 	Number     int
 }

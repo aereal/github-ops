@@ -11,6 +11,7 @@ import (
 
 type GHSecretScanningService interface {
 	ListAlertsForOrg(ctx context.Context, org string, opts *github.SecretScanningAlertListOptions) ([]*github.SecretScanningAlert, *github.Response, error)
+	// UpdateAlert(ctx context.Context, owner, repo string, number int64, opts *github.SecretScanningAlertUpdateOptions) (*github.SecretScanningAlert, *github.Response, error)
 }
 
 type SecretScanAlertService struct {
@@ -24,6 +25,12 @@ func NewSecretScanAlertService(client GHSecretScanningService) *SecretScanAlertS
 	return &SecretScanAlertService{
 		client: client,
 	}
+}
+
+func (s *SecretScanAlertService) DismissSecretScanningAlerts(ctx context.Context) error {
+	// var c *github.Client
+	// c.SecretScanning.UpdateAlert(ctx, "", "", 0, &github.SecretScanningAlertUpdateOptions{})
+	panic("TODO")
 }
 
 func (s *SecretScanAlertService) ListOpenSecretScanningAlertsForOrg(ctx context.Context, org string, secretTypes []string) domain.SecretScanningAlertIterator {
@@ -62,6 +69,10 @@ func (i *alertIterator) Values(ctx context.Context) iter.Seq[*domain.SecretScann
 				alert := &domain.SecretScanningAlert{
 					Number:     a.GetNumber(),
 					SecretType: a.GetSecretType(),
+					Repository: &domain.SecretScanningAlertTargetRepository{
+						Owner: a.GetRepository().GetOwner().GetLogin(),
+						Name:  a.GetRepository().GetName(),
+					},
 				}
 				if !yield(alert) {
 					return

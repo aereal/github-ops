@@ -41,10 +41,18 @@ func TestSecretScanAlertService_ListOpenSecretScanningAlertsForOrg(t *testing.T)
 					{
 						Number:     github.Ptr(1),
 						SecretType: github.Ptr("github_token"),
+						Repository: &github.Repository{
+							Owner: &github.User{Login: github.Ptr("testowner")},
+							Name:  github.Ptr("testrepo1"),
+						},
 					},
 					{
 						Number:     github.Ptr(2),
 						SecretType: github.Ptr("github_token"),
+						Repository: &github.Repository{
+							Owner: &github.User{Login: github.Ptr("testowner")},
+							Name:  github.Ptr("testrepo2"),
+						},
 					},
 				}
 				resp := &github.Response{After: ""}
@@ -55,8 +63,22 @@ func TestSecretScanAlertService_ListOpenSecretScanningAlertsForOrg(t *testing.T)
 				).Return(alerts, resp, nil)
 			},
 			expected: []*domain.SecretScanningAlert{
-				{Number: 1, SecretType: "github_token"},
-				{Number: 2, SecretType: "github_token"},
+				{
+					Number:     1,
+					SecretType: "github_token",
+					Repository: &domain.SecretScanningAlertTargetRepository{
+						Owner: "testowner",
+						Name:  "testrepo1",
+					},
+				},
+				{
+					Number:     2,
+					SecretType: "github_token",
+					Repository: &domain.SecretScanningAlertTargetRepository{
+						Owner: "testowner",
+						Name:  "testrepo2",
+					},
+				},
 			},
 			expectError: false,
 		},
@@ -70,6 +92,10 @@ func TestSecretScanAlertService_ListOpenSecretScanningAlertsForOrg(t *testing.T)
 					{
 						Number:     github.Ptr(1),
 						SecretType: github.Ptr("aws_access_key"),
+						Repository: &github.Repository{
+							Owner: &github.User{Login: github.Ptr("testowner")},
+							Name:  github.Ptr("aws-repo1"),
+						},
 					},
 				}
 				resp1 := &github.Response{After: "page2"}
@@ -79,6 +105,10 @@ func TestSecretScanAlertService_ListOpenSecretScanningAlertsForOrg(t *testing.T)
 					{
 						Number:     github.Ptr(2),
 						SecretType: github.Ptr("aws_access_key"),
+						Repository: &github.Repository{
+							Owner: &github.User{Login: github.Ptr("testowner")},
+							Name:  github.Ptr("aws-repo2"),
+						},
 					},
 				}
 				resp2 := &github.Response{After: ""}
@@ -97,8 +127,22 @@ func TestSecretScanAlertService_ListOpenSecretScanningAlertsForOrg(t *testing.T)
 				)
 			},
 			expected: []*domain.SecretScanningAlert{
-				{Number: 1, SecretType: "aws_access_key"},
-				{Number: 2, SecretType: "aws_access_key"},
+				{
+					Number:     1,
+					SecretType: "aws_access_key",
+					Repository: &domain.SecretScanningAlertTargetRepository{
+						Owner: "testowner",
+						Name:  "aws-repo1",
+					},
+				},
+				{
+					Number:     2,
+					SecretType: "aws_access_key",
+					Repository: &domain.SecretScanningAlertTargetRepository{
+						Owner: "testowner",
+						Name:  "aws-repo2",
+					},
+				},
 			},
 			expectError: false,
 		},
@@ -141,10 +185,18 @@ func TestSecretScanAlertService_ListOpenSecretScanningAlertsForOrg(t *testing.T)
 					{
 						Number:     github.Ptr(1),
 						SecretType: github.Ptr("github_token"),
+						Repository: &github.Repository{
+							Owner: &github.User{Login: github.Ptr("multiorg")},
+							Name:  github.Ptr("frontend-app"),
+						},
 					},
 					{
 						Number:     github.Ptr(2),
 						SecretType: github.Ptr("aws_access_key"),
+						Repository: &github.Repository{
+							Owner: &github.User{Login: github.Ptr("multiorg")},
+							Name:  github.Ptr("backend-api"),
+						},
 					},
 				}
 				resp := &github.Response{After: ""}
@@ -155,8 +207,22 @@ func TestSecretScanAlertService_ListOpenSecretScanningAlertsForOrg(t *testing.T)
 				).Return(alerts, resp, nil)
 			},
 			expected: []*domain.SecretScanningAlert{
-				{Number: 1, SecretType: "github_token"},
-				{Number: 2, SecretType: "aws_access_key"},
+				{
+					Number:     1,
+					SecretType: "github_token",
+					Repository: &domain.SecretScanningAlertTargetRepository{
+						Owner: "multiorg",
+						Name:  "frontend-app",
+					},
+				},
+				{
+					Number:     2,
+					SecretType: "aws_access_key",
+					Repository: &domain.SecretScanningAlertTargetRepository{
+						Owner: "multiorg",
+						Name:  "backend-api",
+					},
+				},
 			},
 			expectError: false,
 		},
@@ -169,10 +235,15 @@ func TestSecretScanAlertService_ListOpenSecretScanningAlertsForOrg(t *testing.T)
 					{
 						Number:     nil,
 						SecretType: nil,
+						Repository: nil,
 					},
 					{
 						Number:     github.Ptr(1),
 						SecretType: github.Ptr("github_token"),
+						Repository: &github.Repository{
+							Owner: &github.User{Login: github.Ptr("niltest")},
+							Name:  github.Ptr("valid-repo"),
+						},
 					},
 				}
 				resp := &github.Response{After: ""}
@@ -183,8 +254,19 @@ func TestSecretScanAlertService_ListOpenSecretScanningAlertsForOrg(t *testing.T)
 				).Return(alerts, resp, nil)
 			},
 			expected: []*domain.SecretScanningAlert{
-				{Number: 0, SecretType: ""},
-				{Number: 1, SecretType: "github_token"},
+				{
+					Number:     0,
+					SecretType: "",
+					Repository: nil,
+				},
+				{
+					Number:     1,
+					SecretType: "github_token",
+					Repository: &domain.SecretScanningAlertTargetRepository{
+						Owner: "niltest",
+						Name:  "valid-repo",
+					},
+				},
 			},
 			expectError: false,
 		},
@@ -280,14 +362,26 @@ func TestAlertIterator_Values_EarlyBreak(t *testing.T) {
 		{
 			Number:     github.Ptr(1),
 			SecretType: github.Ptr("github_token"),
+			Repository: &github.Repository{
+				Owner: &github.User{Login: github.Ptr("earlybreak")},
+				Name:  github.Ptr("test-repo-1"),
+			},
 		},
 		{
 			Number:     github.Ptr(2),
 			SecretType: github.Ptr("github_token"),
+			Repository: &github.Repository{
+				Owner: &github.User{Login: github.Ptr("earlybreak")},
+				Name:  github.Ptr("test-repo-2"),
+			},
 		},
 		{
 			Number:     github.Ptr(3),
 			SecretType: github.Ptr("github_token"),
+			Repository: &github.Repository{
+				Owner: &github.User{Login: github.Ptr("earlybreak")},
+				Name:  github.Ptr("test-repo-3"),
+			},
 		},
 	}
 	resp := &github.Response{After: ""}
@@ -447,14 +541,26 @@ func TestAlertIterator_Values_YieldReturnsFalse(t *testing.T) {
 		{
 			Number:     github.Ptr(1),
 			SecretType: github.Ptr("github_token"),
+			Repository: &github.Repository{
+				Owner: &github.User{Login: github.Ptr("yieldtest")},
+				Name:  github.Ptr("repo-a"),
+			},
 		},
 		{
 			Number:     github.Ptr(2),
 			SecretType: github.Ptr("github_token"),
+			Repository: &github.Repository{
+				Owner: &github.User{Login: github.Ptr("yieldtest")},
+				Name:  github.Ptr("repo-b"),
+			},
 		},
 		{
 			Number:     github.Ptr(3),
 			SecretType: github.Ptr("github_token"),
+			Repository: &github.Repository{
+				Owner: &github.User{Login: github.Ptr("yieldtest")},
+				Name:  github.Ptr("repo-c"),
+			},
 		},
 	}
 	resp := &github.Response{After: ""}
@@ -498,10 +604,18 @@ func TestAlertIterator_Values_MultiPageWithYieldFalse(t *testing.T) {
 		{
 			Number:     github.Ptr(1),
 			SecretType: github.Ptr("github_token"),
+			Repository: &github.Repository{
+				Owner: &github.User{Login: github.Ptr("multipage")},
+				Name:  github.Ptr("page1-repo1"),
+			},
 		},
 		{
 			Number:     github.Ptr(2),
 			SecretType: github.Ptr("github_token"),
+			Repository: &github.Repository{
+				Owner: &github.User{Login: github.Ptr("multipage")},
+				Name:  github.Ptr("page1-repo2"),
+			},
 		},
 	}
 	resp1 := &github.Response{After: "page2"}
