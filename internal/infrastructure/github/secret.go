@@ -11,7 +11,7 @@ import (
 
 type GHSecretScanningService interface {
 	ListAlertsForOrg(ctx context.Context, org string, opts *github.SecretScanningAlertListOptions) ([]*github.SecretScanningAlert, *github.Response, error)
-	// UpdateAlert(ctx context.Context, owner, repo string, number int64, opts *github.SecretScanningAlertUpdateOptions) (*github.SecretScanningAlert, *github.Response, error)
+	UpdateAlert(ctx context.Context, owner, repo string, number int64, opts *github.SecretScanningAlertUpdateOptions) (*github.SecretScanningAlert, *github.Response, error)
 }
 
 type SecretScanAlertService struct {

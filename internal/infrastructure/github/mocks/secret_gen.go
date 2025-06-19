@@ -80,3 +80,43 @@ func (c *MockGHSecretScanningServiceListAlertsForOrgCall) DoAndReturn(f func(con
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
+
+// UpdateAlert mocks base method.
+func (m *MockGHSecretScanningService) UpdateAlert(ctx context.Context, owner, repo string, number int64, opts *github.SecretScanningAlertUpdateOptions) (*github.SecretScanningAlert, *github.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAlert", ctx, owner, repo, number, opts)
+	ret0, _ := ret[0].(*github.SecretScanningAlert)
+	ret1, _ := ret[1].(*github.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// UpdateAlert indicates an expected call of UpdateAlert.
+func (mr *MockGHSecretScanningServiceMockRecorder) UpdateAlert(ctx, owner, repo, number, opts any) *MockGHSecretScanningServiceUpdateAlertCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAlert", reflect.TypeOf((*MockGHSecretScanningService)(nil).UpdateAlert), ctx, owner, repo, number, opts)
+	return &MockGHSecretScanningServiceUpdateAlertCall{Call: call}
+}
+
+// MockGHSecretScanningServiceUpdateAlertCall wrap *gomock.Call
+type MockGHSecretScanningServiceUpdateAlertCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockGHSecretScanningServiceUpdateAlertCall) Return(arg0 *github.SecretScanningAlert, arg1 *github.Response, arg2 error) *MockGHSecretScanningServiceUpdateAlertCall {
+	c.Call = c.Call.Return(arg0, arg1, arg2)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockGHSecretScanningServiceUpdateAlertCall) Do(f func(context.Context, string, string, int64, *github.SecretScanningAlertUpdateOptions) (*github.SecretScanningAlert, *github.Response, error)) *MockGHSecretScanningServiceUpdateAlertCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockGHSecretScanningServiceUpdateAlertCall) DoAndReturn(f func(context.Context, string, string, int64, *github.SecretScanningAlertUpdateOptions) (*github.SecretScanningAlert, *github.Response, error)) *MockGHSecretScanningServiceUpdateAlertCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
