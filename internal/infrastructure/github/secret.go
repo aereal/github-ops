@@ -7,6 +7,7 @@ import (
 
 	"github.com/aereal/github-ops/internal/domain"
 	"github.com/google/go-github/v72/github"
+	"golang.org/x/sync/errgroup"
 )
 
 type GHSecretScanningService interface {
@@ -27,10 +28,32 @@ func NewSecretScanAlertService(client GHSecretScanningService) *SecretScanAlertS
 	}
 }
 
-func (s *SecretScanAlertService) DismissSecretScanningAlerts(ctx context.Context) error {
-	// var c *github.Client
-	// c.SecretScanning.UpdateAlert(ctx, "", "", 0, &github.SecretScanningAlertUpdateOptions{})
-	panic("TODO")
+func (s *SecretScanAlertService) DismissSecretScanningAlerts(ctx context.Context, dismissals iter.Seq[*domain.SecretScanningAlertDismissal]) error {
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.SetLimit(2) // TODO
+	for dismissal := range dismissals {
+		eg.Go(func() error {
+			return s.dismissSecretScanningAlert(ctx, dismissal)
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *SecretScanAlertService) dismissSecretScanningAlert(ctx context.Context, dismissal *domain.SecretScanningAlertDismissal) error {
+	opts := &github.SecretScanningAlertUpdateOptions{
+		State:             "resolved",
+		Resolution:        github.Ptr(dismissal.Resolution.String()),
+		ResolutionComment: github.Ptr(dismissal.ResolutionComment),
+	}
+	alert := dismissal.Alert
+	repo := alert.Repository
+	if _, _, err := s.client.UpdateAlert(ctx, repo.Owner, repo.Name, alert.Number, opts); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *SecretScanAlertService) ListOpenSecretScanningAlertsForOrg(ctx context.Context, org string, secretTypes []string) domain.SecretScanningAlertIterator {
