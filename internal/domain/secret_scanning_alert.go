@@ -13,7 +13,7 @@ type SecretScanningAlertTargetRepository struct {
 type SecretScanningAlert struct {
 	Repository *SecretScanningAlertTargetRepository
 	SecretType string
-	Number     int
+	Number     int64
 }
 
 type SecretScanningAlertIterator interface {

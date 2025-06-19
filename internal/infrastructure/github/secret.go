@@ -67,7 +67,7 @@ func (i *alertIterator) Values(ctx context.Context) iter.Seq[*domain.SecretScann
 			}
 			for _, a := range alerts {
 				alert := &domain.SecretScanningAlert{
-					Number:     a.GetNumber(),
+					Number:     int64(a.GetNumber()),
 					SecretType: a.GetSecretType(),
 					Repository: &domain.SecretScanningAlertTargetRepository{
 						Owner: a.GetRepository().GetOwner().GetLogin(),
